@@ -254,5 +254,6 @@ def get_memes_for_voting(room):
     return [{'sid': m['sid'], 'image': m['image']} for m in room.memes_this_round]
 
 if __name__ == '__main__':
-    print("Starting MakeItMeme Backend Server on port 5000...")
-    socketio.run(app, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    print(f"Starting MakeItMeme Backend Server on port {port}...")
+    socketio.run(app, host='0.0.0.0', port=port)

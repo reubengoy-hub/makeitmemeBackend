@@ -52,7 +52,7 @@ def on_create_room(data):
     player = Player(request.sid, player_name)
     rooms[room_id].players[request.sid] = player
 
-    emit('room_created', {'room_id': room_id, 'player_id': request.sid})
+    emit('room_created', {'room_id': room_id, 'player_id': request.sid, 'players': get_player_list(rooms[room_id])})
     emit('player_list_update', get_player_list(rooms[room_id]), to=room_id)
     print(f"Room {room_id} created by {player_name}")
 
@@ -74,7 +74,7 @@ def on_join_room(data):
 
     room.players[request.sid] = player
 
-    emit('joined_room', {'room_id': room_id, 'player_id': request.sid, 'state': room.state})
+    emit('joined_room', {'room_id': room_id, 'player_id': request.sid, 'state': room.state, 'players': get_player_list(room)})
     emit('player_list_update', get_player_list(room), to=room_id)
     print(f"Player {player_name} joined {room_id}")
 

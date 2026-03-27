@@ -42,9 +42,9 @@ def on_create_room(data):
     num_rounds = max(1, min(10, int(data.get('num_rounds', 3))))
 
     # Fix: check for collision before assigning room ID
-    room_id = str(uuid.uuid4())[:6].upper()
+    room_id = str(uuid.uuid4())[:3].upper()
     while room_id in rooms:
-        room_id = str(uuid.uuid4())[:6].upper()
+        room_id = str(uuid.uuid4())[:3].upper()
 
     join_room(room_id)
 

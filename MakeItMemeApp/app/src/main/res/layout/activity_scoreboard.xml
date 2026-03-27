@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/tvScoreboardTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Posiciones Parciales"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="16dp"/>
+
+    <ListView
+        android:id="@+id/lvScores"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginBottom="16dp"/>
+
+    <Button
+        android:id="@+id/btnNextRound"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Listo para la siguiente ronda" />
+
+    <!-- Winner Section (hidden by default) -->
+    <LinearLayout
+        android:id="@+id/winnerSection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/tvWinnerText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ganador: ..."
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="8dp"/>
+        <TextView
+            android:id="@+id/tvRunnerUpText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Subcampeón: ..."
+            android:textSize="20sp"
+            android:gravity="center"
+            android:layout_marginBottom="16dp"/>
+        <Button
+            android:id="@+id/btnPlayAgain"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Volver al Inicio" />
+    </LinearLayout>
+
+</LinearLayout>

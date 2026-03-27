@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/tvVotingStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Vota el Meme (1-10)"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="16dp"/>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginBottom="16dp"
+        android:background="#DDDDDD">
+
+        <ImageView
+            android:id="@+id/ivMemeToVote"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitCenter" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/voteControls"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        
+        <TextView
+            android:id="@+id/tvScoreLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Puntuación: 5"
+            android:gravity="center"
+            android:textSize="18sp"/>
+
+        <SeekBar
+            android:id="@+id/sbVote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="9"
+            android:progress="4"
+            android:layout_marginBottom="16dp"
+            android:layout_marginTop="8dp"/>
+
+        <Button
+            android:id="@+id/btnSubmitVote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Votar" />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvWaitingVotes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Esperando a los demás..."
+        android:gravity="center"
+        android:textSize="18sp"
+        android:visibility="gone"/>
+
+</LinearLayout>

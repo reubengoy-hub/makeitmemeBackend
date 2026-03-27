@@ -1,0 +1,26 @@
+[
+    {
+        "merged": "/home/usuario/.gradle/daemon/9.0-milestone-1/com.example.makeitmeme.app-merged_res-31:/layout_activity_main.xml.flat",
+        "source": "/home/usuario/.gradle/daemon/9.0-milestone-1/com.example.makeitmeme.app-main-33:/layout/activity_main.xml"
+    },
+    {
+        "merged": "/home/usuario/.gradle/daemon/9.0-milestone-1/com.example.makeitmeme.app-merged_res-31:/layout_activity_editor.xml.flat",
+        "source": "/home/usuario/.gradle/daemon/9.0-milestone-1/com.example.makeitmeme.app-main-33:/layout/activity_editor.xml"
+    },
+    {
+        "merged": "/home/usuario/.gradle/daemon/9.0-milestone-1/com.example.makeitmeme.app-merged_res-31:/layout_activity_voting.xml.flat",
+        "source": "/home/usuario/.gradle/daemon/9.0-milestone-1/com.example.makeitmeme.app-main-33:/layout/activity_voting.xml"
+    },
+    {
+        "merged": "com.example.makeitmeme.app-merged_res-31:/layout_activity_main.xml.flat",
+        "source": "com.example.makeitmeme.app-main-33:/layout/activity_main.xml"
+    },
+    {
+        "merged": "/home/usuario/.gradle/daemon/9.0-milestone-1/com.example.makeitmeme.app-merged_res-31:/layout_activity_lobby.xml.flat",
+        "source": "/home/usuario/.gradle/daemon/9.0-milestone-1/com.example.makeitmeme.app-main-33:/layout/activity_lobby.xml"
+    },
+    {
+        "merged": "/home/usuario/.gradle/daemon/9.0-milestone-1/com.example.makeitmeme.app-merged_res-31:/layout_activity_scoreboard.xml.flat",
+        "source": "/home/usuario/.gradle/daemon/9.0-milestone-1/com.example.makeitmeme.app-main-33:/layout/activity_scoreboard.xml"
+    }
+]

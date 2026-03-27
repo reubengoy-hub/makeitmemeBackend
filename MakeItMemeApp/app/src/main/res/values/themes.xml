@@ -1,0 +1,5 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Base.Theme.MakeItMemeApp" parent="Theme.Material3.DayNight.NoActionBar">
+    </style>
+    <style name="Theme.MakeItMemeApp" parent="Base.Theme.MakeItMemeApp" />
+</resources>

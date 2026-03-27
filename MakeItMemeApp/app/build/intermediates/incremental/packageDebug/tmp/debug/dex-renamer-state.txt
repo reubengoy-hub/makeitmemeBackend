@@ -1,0 +1,13 @@
+#Fri Mar 27 09:01:20 CET 2026
+path.3=3/classes.dex
+path.2=11/classes.dex
+path.1=0/classes.dex
+path.0=classes.dex
+base.3=/home/usuario/Documentos/proyectosANDROID/MakeItMemeApp/app/build/intermediates/dex/debug/mergeProjectDexDebug/3/classes.dex
+base.2=/home/usuario/Documentos/proyectosANDROID/MakeItMemeApp/app/build/intermediates/dex/debug/mergeProjectDexDebug/11/classes.dex
+base.1=/home/usuario/Documentos/proyectosANDROID/MakeItMemeApp/app/build/intermediates/dex/debug/mergeProjectDexDebug/0/classes.dex
+base.0=/home/usuario/Documentos/proyectosANDROID/MakeItMemeApp/app/build/intermediates/dex/debug/mergeExtDexDebug/classes.dex
+renamed.3=classes4.dex
+renamed.2=classes3.dex
+renamed.1=classes2.dex
+renamed.0=classes.dex

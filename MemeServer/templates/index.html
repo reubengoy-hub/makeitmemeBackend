@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MakeItRaspa</title>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #111; color: #fff; font-family: Arial, sans-serif; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
+  .screen { display: none; width: 100%; max-width: 480px; padding: 24px; }
+  .screen.active { display: flex; flex-direction: column; gap: 12px; }
+  h1 { font-size: 2rem; text-align: center; letter-spacing: 2px; }
+  h2 { font-size: 1.4rem; text-align: center; color: #aaa; }
+  input[type=text], input[type=number] {
+    width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444;
+    background: #222; color: #fff; font-size: 1rem;
+  }
+  button {
+    width: 100%; padding: 14px; border-radius: 8px; border: none;
+    background: #e53935; color: #fff; font-size: 1rem; font-weight: bold;
+    cursor: pointer; transition: background .2s;
+  }
+  button:hover { background: #c62828; }
+  button:disabled { background: #555; cursor: default; }
+  button.secondary { background: #333; }
+  button.secondary:hover { background: #444; }
+  #player-list, #score-list { list-style: none; background: #1a1a1a; border-radius: 8px; padding: 8px; }
+  #player-list li, #score-list li { padding: 8px 12px; border-bottom: 1px solid #2a2a2a; }
+  #player-list li:last-child, #score-list li:last-child { border-bottom: none; }
+  .room-code { font-size: 2.5rem; text-align: center; letter-spacing: 8px; font-weight: bold; color: #e53935; background: #1a1a1a; padding: 12px; border-radius: 8px; }
+  .timer { font-size: 1.4rem; text-align: center; color: #e53935; font-weight: bold; }
+  #meme-canvas { width: 100%; border-radius: 8px; background: #222; }
+  #voting-img { width: 100%; border-radius: 8px; background: #222; max-height: 340px; object-fit: contain; }
+  input[type=range] { width: 100%; accent-color: #e53935; }
+  .score-label { text-align: center; font-size: 1.2rem; }
+  .status { text-align: center; color: #aaa; font-size: 0.95rem; }
+  .winner { text-align: center; font-size: 1.6rem; padding: 16px; background: #1a1a1a; border-radius: 8px; }
+  .disconnected { color: #888; font-style: italic; }
+  textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; font-size: 1rem; resize: none; }
+  .waiting { text-align: center; color: #aaa; padding: 20px; }
+</style>
+</head>
+<body>
+
+<!-- ── INICIO ── -->
+<div id="screen-main" class="screen active">
+  <h1>MakeItRaspa</h1>
+  <input id="inp-name" type="text" placeholder="Tu nombre" maxlength="20">
+  <input id="inp-room" type="text" placeholder="Código de sala (para unirse)" maxlength="3" style="text-transform:uppercase">
+  <button id="btn-create">Crear partida</button>
+  <button id="btn-join" class="secondary">Unirse a partida</button>
+  <p id="main-status" class="status">Conectando al servidor...</p>
+</div>
+
+<!-- ── LOBBY ── -->
+<div id="screen-lobby" class="screen">
+  <h1>MakeItRaspa</h1>
+  <p class="status">Código de sala:</p>
+  <div id="lobby-code" class="room-code"></div>
+  <h2>Jugadores</h2>
+  <ul id="player-list"></ul>
+  <button id="btn-start" style="display:none">Iniciar partida</button>
+  <p id="lobby-status" class="status">Esperando a que el anfitrión inicie...</p>
+</div>
+
+<!-- ── EDITOR ── -->
+<div id="screen-editor" class="screen">
+  <h2 id="editor-round-info"></h2>
+  <div id="editor-timer" class="timer">⏱ 45s</div>
+  <canvas id="meme-canvas"></canvas>
+  <textarea id="inp-meme-text" rows="2" placeholder="Escribe el texto de tu meme..."></textarea>
+  <button id="btn-submit-meme">Enviar meme</button>
+  <p id="editor-status" class="status"></p>
+</div>
+
+<!-- ── VOTACIÓN ── -->
+<div id="screen-voting" class="screen">
+  <h2 id="voting-status"></h2>
+  <div id="voting-timer" class="timer">⏱ 10s</div>
+  <img id="voting-img" alt="Meme a votar">
+  <p id="score-display" class="score-label">Puntuación: 5</p>
+  <input id="vote-range" type="range" min="1" max="10" value="5">
+  <button id="btn-vote">Votar</button>
+  <p id="voting-waiting" class="waiting" style="display:none">¡Votación terminada! Esperando a los demás...</p>
+</div>
+
+<!-- ── MARCADOR ── -->
+<div id="screen-scoreboard" class="screen">
+  <h2 id="scoreboard-title"></h2>
+  <ul id="score-list"></ul>
+  <div id="next-round-section">
+    <div id="scoreboard-timer" class="timer">⏱ 30s</div>
+    <button id="btn-next-round">Listo para la siguiente ronda</button>
+  </div>
+  <div id="winner-section" style="display:none">
+    <div id="winner-text" class="winner"></div>
+    <div id="runner-up-text" class="winner" style="font-size:1.2rem; margin-top:8px"></div>
+    <button id="btn-play-again" style="margin-top:16px">Volver al inicio</button>
+  </div>
+</div>
+
+<script>
+const socket = io();
+
+// ── Estado ───────────────────────────────────────────────────────────────────
+let myPlayerId = '', myRoomId = '', isHost = false;
+let memesList = [], currentMemeIndex = 0, votes = {};
+let currentImage = null;   // HTMLImageElement cargado para el editor
+let countdownInterval = null;
+let alreadySubmittedMeme = false, alreadySubmittedVote = false, alreadySentReady = false;
+
+// ── Pantallas ─────────────────────────────────────────────────────────────────
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── Timers ────────────────────────────────────────────────────────────────────
+function startTimer(secs, labelEl, onFinish) {
+  stopTimer();
+  let remaining = secs;
+  labelEl.textContent = `⏱ ${remaining}s`;
+  countdownInterval = setInterval(() => {
+    remaining--;
+    labelEl.textContent = `⏱ ${remaining}s`;
+    labelEl.style.color = remaining <= 5 ? '#f44336' : '#e53935';
+    if (remaining <= 0) { stopTimer(); onFinish(); }
+  }, 1000);
+}
+function stopTimer() { clearInterval(countdownInterval); countdownInterval = null; }
+
+// ── Utilidades ────────────────────────────────────────────────────────────────
+function renderPlayerList(players) {
+  const ul = document.getElementById('player-list');
+  ul.innerHTML = '';
+  players.forEach(p => {
+    const li = document.createElement('li');
+    if (p.disconnected) {
+      li.innerHTML = `<span class="disconnected">${p.name} (desconectado)</span>`;
+    } else if (p.is_host) {
+      li.textContent = `${p.name} (Anfitrión)`;
+    } else {
+      li.textContent = p.name;
+    }
+    ul.appendChild(li);
+  });
+}
+
+async function loadRandomMeme() {
+  const res  = await fetch('/api/memes');
+  const list = await res.json();
+  if (!list.length) return null;
+  const file = list[Math.floor(Math.random() * list.length)];
+  return new Promise(resolve => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = `/static/memes/${encodeURIComponent(file)}`;
+  });
+}
+
+function renderMemeOnCanvas(img, text) {
+  const canvas  = document.getElementById('meme-canvas');
+  const padding = Math.floor(img.width * 0.04);
+  const maxArea = img.height * 0.28;
+  const textW   = img.width - padding * 2;
+
+  let fontSize = img.width * 0.055;
+  const minSize = img.width * 0.025;
+
+  // Calcular tamaño de fuente que encaja
+  const tmpCanvas = document.createElement('canvas');
+  tmpCanvas.width = img.width; tmpCanvas.height = img.height;
+  const tmpCtx = tmpCanvas.getContext('2d');
+
+  let lines = [];
+  while (fontSize > minSize) {
+    tmpCtx.font = `bold ${fontSize}px Arial`;
+    lines = wrapText(tmpCtx, text || ' ', textW);
+    if (lines.length * fontSize * 1.3 <= maxArea - padding * 2) break;
+    fontSize *= 0.85;
+  }
+
+  const lineH    = fontSize * 1.3;
+  const textArea = lines.length * lineH + padding * 2;
+
+  canvas.width  = img.width;
+  canvas.height = img.height + textArea;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, img.height, img.width, textArea);
+  ctx.fillStyle = '#000';
+  ctx.font = `bold ${fontSize}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  let y = img.height + padding;
+  lines.forEach(line => { ctx.fillText(line, img.width / 2, y); y += lineH; });
+}
+
+function wrapText(ctx, text, maxWidth) {
+  const words = text.split(' ');
+  const lines = [];
+  let line = '';
+  words.forEach(word => {
+    const test = line ? line + ' ' + word : word;
+    if (ctx.measureText(test).width <= maxWidth) { line = test; }
+    else { if (line) lines.push(line); line = word; }
+  });
+  if (line) lines.push(line);
+  return lines.length ? lines : [' '];
+}
+
+function canvasToBase64() {
+  const canvas = document.getElementById('meme-canvas');
+  return canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+}
+
+// ── Pantalla MAIN ─────────────────────────────────────────────────────────────
+document.getElementById('btn-create').addEventListener('click', () => {
+  const name = document.getElementById('inp-name').value.trim();
+  if (!name) { alert('Introduce tu nombre'); return; }
+  socket.emit('create_room', { name, num_rounds: 3 });
+});
+
+document.getElementById('btn-join').addEventListener('click', () => {
+  const name = document.getElementById('inp-name').value.trim();
+  const room = document.getElementById('inp-room').value.trim().toUpperCase();
+  if (!name || !room) { alert('Introduce nombre y código de sala'); return; }
+  socket.emit('join_room', { name, room_id: room });
+});
+
+document.getElementById('inp-room').addEventListener('input', function() {
+  this.value = this.value.toUpperCase();
+});
+
+// ── Pantalla LOBBY ────────────────────────────────────────────────────────────
+document.getElementById('btn-start').addEventListener('click', () => {
+  socket.emit('start_game', { room_id: myRoomId });
+});
+
+// ── Pantalla EDITOR ───────────────────────────────────────────────────────────
+document.getElementById('inp-meme-text').addEventListener('input', () => {
+  if (currentImage) renderMemeOnCanvas(currentImage, document.getElementById('inp-meme-text').value);
+});
+
+document.getElementById('btn-submit-meme').addEventListener('click', () => {
+  const text = document.getElementById('inp-meme-text').value.trim();
+  if (!text) { alert('Escribe algo para tu meme'); return; }
+  submitMeme(text);
+});
+
+function submitMeme(text) {
+  if (alreadySubmittedMeme) return;
+  alreadySubmittedMeme = true;
+  if (currentImage) renderMemeOnCanvas(currentImage, text || '...');
+  const btn = document.getElementById('btn-submit-meme');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  document.getElementById('editor-status').textContent = 'Meme enviado. Esperando a los demás...';
+  socket.emit('submit_meme', { room_id: myRoomId, image: canvasToBase64() });
+}
+
+// ── Pantalla VOTACIÓN ─────────────────────────────────────────────────────────
+document.getElementById('vote-range').addEventListener('input', function() {
+  document.getElementById('score-display').textContent = `Puntuación: ${this.value}`;
+});
+
+document.getElementById('btn-vote').addEventListener('click', () => {
+  recordVoteAndAdvance(parseInt(document.getElementById('vote-range').value));
+});
+
+function recordVoteAndAdvance(score) {
+  stopTimer();
+  const meme = memesList[currentMemeIndex];
+  votes[meme.sid] = score;
+  currentMemeIndex++;
+  showNextMeme();
+}
+
+function showNextMeme() {
+  if (currentMemeIndex < memesList.length) {
+    const meme = memesList[currentMemeIndex];
+    document.getElementById('voting-status').textContent =
+      `Vota el Meme (${currentMemeIndex + 1}/${memesList.length})`;
+    const img = document.getElementById('voting-img');
+    img.src = `data:image/jpeg;base64,${meme.image}`;
+    document.getElementById('vote-range').value = 5;
+    document.getElementById('score-display').textContent = 'Puntuación: 5';
+    document.getElementById('voting-timer').style.display = '';
+    document.getElementById('btn-vote').style.display = '';
+    document.getElementById('voting-waiting').style.display = 'none';
+
+    startTimer(10, document.getElementById('voting-timer'), () => {
+      recordVoteAndAdvance(9);
+    });
+    return;
+  }
+  // Todos los memes votados
+  stopTimer();
+  document.getElementById('voting-timer').style.display = 'none';
+  document.getElementById('btn-vote').style.display = 'none';
+  document.getElementById('voting-img').src = '';
+  document.getElementById('voting-status').textContent = '¡Votación terminada!';
+  document.getElementById('voting-waiting').style.display = '';
+  socket.emit('submit_vote', { room_id: myRoomId, votes });
+}
+
+// ── Pantalla MARCADOR ─────────────────────────────────────────────────────────
+document.getElementById('btn-next-round').addEventListener('click', () => sendReady());
+
+function sendReady() {
+  if (alreadySentReady) return;
+  alreadySentReady = true;
+  stopTimer();
+  document.getElementById('scoreboard-timer').style.display = 'none';
+  const btn = document.getElementById('btn-next-round');
+  btn.disabled = true;
+  btn.textContent = 'Esperando...';
+  socket.emit('ready_next_round', { room_id: myRoomId });
+}
+
+document.getElementById('btn-play-again').addEventListener('click', () => {
+  myRoomId = ''; myPlayerId = ''; isHost = false;
+  show('screen-main');
+});
+
+// ── Eventos Socket.IO ─────────────────────────────────────────────────────────
+socket.on('connect', () => {
+  document.getElementById('main-status').textContent = 'Conectado ✓';
+});
+
+socket.on('connect_error', () => {
+  document.getElementById('main-status').textContent = 'Error de conexión, reintentando...';
+});
+
+socket.on('error', data => alert(data.message));
+
+socket.on('room_created', data => {
+  myPlayerId = data.player_id;
+  myRoomId   = data.room_id;
+  isHost     = true;
+  document.getElementById('lobby-code').textContent = data.room_id;
+  document.getElementById('btn-start').style.display = '';
+  document.getElementById('lobby-status').style.display = 'none';
+  renderPlayerList(data.players);
+  show('screen-lobby');
+});
+
+socket.on('joined_room', data => {
+  myPlayerId = data.player_id;
+  myRoomId   = data.room_id;
+  isHost     = false;
+  document.getElementById('lobby-code').textContent = data.room_id;
+  document.getElementById('btn-start').style.display = 'none';
+  document.getElementById('lobby-status').style.display = '';
+  renderPlayerList(data.players);
+  show('screen-lobby');
+});
+
+socket.on('player_list_update', players => {
+  renderPlayerList(players);
+});
+
+socket.on('host_changed', data => {
+  isHost = data.host_sid === myPlayerId;
+  document.getElementById('btn-start').style.display = isHost ? '' : 'none';
+  document.getElementById('lobby-status').style.display = isHost ? 'none' : '';
+});
+
+socket.on('round_started', async data => {
+  alreadySubmittedMeme = false;
+  document.getElementById('editor-round-info').textContent =
+    `Ronda ${data.round}/${data.total_rounds} — ¡Crea tu meme!`;
+  document.getElementById('editor-status').textContent = '';
+  document.getElementById('btn-submit-meme').disabled = false;
+  document.getElementById('btn-submit-meme').textContent = 'Enviar meme';
+  document.getElementById('inp-meme-text').value = '';
+
+  show('screen-editor');
+
+  currentImage = await loadRandomMeme();
+  if (currentImage) {
+    renderMemeOnCanvas(currentImage, '');
+  } else {
+    document.getElementById('editor-status').textContent = '(Sin imágenes disponibles en el servidor)';
+  }
+
+  startTimer(45, document.getElementById('editor-timer'), () => {
+    const text = document.getElementById('inp-meme-text').value.trim() || '...';
+    submitMeme(text);
+  });
+});
+
+socket.on('start_voting', memesData => {
+  stopTimer();
+  memesList = memesData.filter(m => m.sid !== myPlayerId);
+  currentMemeIndex = 0;
+  votes = {};
+  alreadySubmittedVote = false;
+  show('screen-voting');
+  showNextMeme();
+});
+
+socket.on('partial_results', data => {
+  stopTimer();
+  alreadySentReady = false;
+  renderScoreboard(data, false);
+  show('screen-scoreboard');
+  document.getElementById('next-round-section').style.display = '';
+  document.getElementById('winner-section').style.display = 'none';
+  document.getElementById('btn-next-round').disabled = false;
+  document.getElementById('btn-next-round').textContent = 'Listo para la siguiente ronda';
+  document.getElementById('scoreboard-timer').style.display = '';
+  startTimer(30, document.getElementById('scoreboard-timer'), () => sendReady());
+});
+
+socket.on('game_over', data => {
+  stopTimer();
+  renderScoreboard(data, true);
+  show('screen-scoreboard');
+  document.getElementById('next-round-section').style.display = 'none';
+  document.getElementById('winner-section').style.display = '';
+  const results = data.results;
+  if (results.length > 0)
+    document.getElementById('winner-text').textContent = `🏆 Ganador: ${results[0].name} 🏆`;
+  if (results.length > 1)
+    document.getElementById('runner-up-text').textContent = `🥈 Subcampeón: ${results[1].name}`;
+});
+
+function renderScoreboard(data, isFinal) {
+  const title = isFinal
+    ? 'Resultados Finales'
+    : `Fin de Ronda ${data.round}/${data.total_rounds}`;
+  document.getElementById('scoreboard-title').textContent = title;
+
+  const ul = document.getElementById('score-list');
+  ul.innerHTML = '';
+  data.results.forEach((p, i) => {
+    const li = document.createElement('li');
+    let text = `${i + 1}. ${p.name} — ${p.total_score} pts`;
+    if (!isFinal && p.round_score !== undefined) text += ` (+${p.round_score} esta ronda)`;
+    li.textContent = text;
+    ul.appendChild(li);
+  });
+}
+</script>
+</body>
+</html>

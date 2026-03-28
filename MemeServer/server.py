@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, render_template, jsonify
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import uuid
 import eventlet
@@ -185,7 +185,16 @@ def _check_advance(room):
 
 @app.route('/')
 def index():
-    return "MakeItMeme Backend Running"
+    return render_template('index.html')
+
+@app.route('/api/memes')
+def list_memes():
+    memes_dir = os.path.join(app.static_folder, 'memes')
+    if not os.path.exists(memes_dir):
+        return jsonify([])
+    files = [f for f in os.listdir(memes_dir)
+             if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+    return jsonify(files)
 
 @socketio.on('create_room')
 def on_create_room(data):

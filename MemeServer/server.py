@@ -14,7 +14,7 @@ rooms = {}
 
 RECONNECT_TIMEOUT  = 30   # segundos para reconectarse tras desconexión
 CREATION_TIMEOUT   = 47   # segundos para crear el meme (cliente tiene 45s)
-VOTING_TIMEOUT     = 14   # segundos para votar     (cliente tiene 12s)
+VOTING_SECS_PER_MEME = 10 # segundos por meme a votar (cliente tiene 10s)
 RESULTS_TIMEOUT    = 32   # segundos en pantalla de resultados (cliente tiene 30s)
 
 class Room:
@@ -92,13 +92,15 @@ def start_voting(room):
     socketio.emit('start_voting', get_memes_for_voting(room), to=room.room_id)
     print(f"Room {room.room_id}: started voting")
 
+    # Timeout dinámico: 10s por meme + 2s de margen
+    num_memes = len(room.memes_this_round)
+    voting_timeout_secs = VOTING_SECS_PER_MEME * num_memes + 2
     pid = room.phase_id
     def voting_timeout():
         r = rooms.get(room.room_id)
         if not r or r.phase_id != pid or r.state != "VOTING":
             return
         print(f"Room {room.room_id}: voting timeout — auto-voting for idle players")
-        # Votar 9 automáticamente para quien no haya votado
         active = get_active_players(r)
         meme_sids = [m['sid'] for m in r.memes_this_round]
         for p in active:
@@ -106,7 +108,7 @@ def start_voting(room):
                 auto_votes = {sid: 9 for sid in meme_sids if sid != p.sid}
                 r.votes_this_round[p.sid] = auto_votes
         show_partial_results(r)
-    room.phase_timer = eventlet.spawn_after(VOTING_TIMEOUT, voting_timeout)
+    room.phase_timer = eventlet.spawn_after(voting_timeout_secs, voting_timeout)
 
 def show_partial_results(room):
     cancel_phase_timer(room)

@@ -109,7 +109,13 @@
 </div>
 
 <script>
-const socket = io();
+const socket = io({
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  timeout: 20000
+});
 
 // ── Estado ───────────────────────────────────────────────────────────────────
 let myPlayerId = '', myRoomId = '', isHost = false;
@@ -230,6 +236,7 @@ function canvasToBase64() {
 document.getElementById('btn-create').addEventListener('click', () => {
   const name = document.getElementById('inp-name').value.trim();
   if (!name) { alert('Introduce tu nombre'); return; }
+  myPlayerName = name;
   const num_rounds = parseInt(document.getElementById('sel-rounds').value);
   socket.emit('create_room', { name, num_rounds });
 });
@@ -238,6 +245,7 @@ document.getElementById('btn-join').addEventListener('click', () => {
   const name = document.getElementById('inp-name').value.trim();
   const room = document.getElementById('inp-room').value.trim().toUpperCase();
   if (!name || !room) { alert('Introduce nombre y código de sala'); return; }
+  myPlayerName = name;
   socket.emit('join_room', { name, room_id: room });
 });
 
@@ -336,9 +344,21 @@ document.getElementById('btn-play-again').addEventListener('click', () => {
   show('screen-main');
 });
 
+// ── Reconexión al volver de segundo plano ─────────────────────────────────────
+let myPlayerName = '';
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && myRoomId && !socket.connected) {
+    socket.connect();
+  }
+});
+
 // ── Eventos Socket.IO ─────────────────────────────────────────────────────────
 socket.on('connect', () => {
   document.getElementById('main-status').textContent = 'Conectado ✓';
+  // Si estábamos en una sala, reingresamos automáticamente
+  if (myRoomId && myPlayerName) {
+    socket.emit('join_room', { name: myPlayerName, room_id: myRoomId });
+  }
 });
 
 socket.on('connect_error', () => {
@@ -361,12 +381,27 @@ socket.on('room_created', data => {
 socket.on('joined_room', data => {
   myPlayerId = data.player_id;
   myRoomId   = data.room_id;
-  isHost     = false;
+  isHost     = data.is_host || false;
   document.getElementById('lobby-code').textContent = data.room_id;
-  document.getElementById('btn-start').style.display = 'none';
-  document.getElementById('lobby-status').style.display = '';
+  document.getElementById('btn-start').style.display = isHost ? '' : 'none';
+  document.getElementById('lobby-status').style.display = isHost ? 'none' : '';
   renderPlayerList(data.players);
-  show('screen-lobby');
+
+  // Si el juego ya está en curso, ir a la pantalla correcta
+  const state = data.state;
+  if (state === 'CREATING') {
+    show('screen-editor');
+  } else if (state === 'VOTING') {
+    show('screen-voting');
+    document.getElementById('voting-waiting').style.display = '';
+    document.getElementById('btn-vote').style.display = 'none';
+    document.getElementById('voting-img').src = '';
+    document.getElementById('voting-status').textContent = 'Reconectado — esperando resultados...';
+  } else if (state === 'RESULTS') {
+    show('screen-score');
+  } else {
+    show('screen-lobby');
+  }
 });
 
 socket.on('player_list_update', players => {

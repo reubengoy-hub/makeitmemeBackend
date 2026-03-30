@@ -241,7 +241,8 @@ def on_join_room(data):
             room.host_sid = request.sid
         join_room(room_id)
         emit('joined_room', {'room_id': room_id, 'player_id': request.sid,
-                             'state': room.state, 'players': get_player_list(room)})
+                             'state': room.state, 'players': get_player_list(room),
+                             'is_host': room.host_sid == request.sid})
         socketio.emit('player_list_update', get_player_list(room), to=room_id)
         print(f"Player {player_name} reconnected to {room_id}")
         return
@@ -254,7 +255,8 @@ def on_join_room(data):
     room.players[request.sid] = player
 
     emit('joined_room', {'room_id': room_id, 'player_id': request.sid,
-                         'state': room.state, 'players': get_player_list(room)})
+                         'state': room.state, 'players': get_player_list(room),
+                         'is_host': room.host_sid == request.sid})
     socketio.emit('player_list_update', get_player_list(room), to=room_id)
     print(f"Player {player_name} joined {room_id}")
 

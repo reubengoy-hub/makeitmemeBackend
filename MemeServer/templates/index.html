@@ -48,6 +48,14 @@
   <h1>MakeItRaspa</h1>
   <input id="inp-name" type="text" placeholder="Tu nombre" maxlength="20">
   <input id="inp-room" type="text" placeholder="Código de sala (para unirse)" maxlength="3" style="text-transform:uppercase">
+  <div style="display:flex;align-items:center;gap:8px;justify-content:center">
+    <label for="sel-rounds" style="color:#fff">Rondas:</label>
+    <select id="sel-rounds" style="padding:6px;border-radius:6px">
+      <option value="3">3</option>
+      <option value="5">5</option>
+      <option value="7">7</option>
+    </select>
+  </div>
   <button id="btn-create">Crear partida</button>
   <button id="btn-join" class="secondary">Unirse a partida</button>
   <p id="main-status" class="status">Conectando al servidor...</p>
@@ -222,7 +230,8 @@ function canvasToBase64() {
 document.getElementById('btn-create').addEventListener('click', () => {
   const name = document.getElementById('inp-name').value.trim();
   if (!name) { alert('Introduce tu nombre'); return; }
-  socket.emit('create_room', { name, num_rounds: 3 });
+  const num_rounds = parseInt(document.getElementById('sel-rounds').value);
+  socket.emit('create_room', { name, num_rounds });
 });
 
 document.getElementById('btn-join').addEventListener('click', () => {

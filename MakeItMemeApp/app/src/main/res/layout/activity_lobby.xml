@@ -37,37 +37,6 @@
         android:orientation="vertical"
         android:visibility="gone">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Rondas:"
-            android:textSize="16sp"/>
-
-        <RadioGroup
-            android:id="@+id/rgRounds"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="16dp">
-
-            <RadioButton
-                android:id="@+id/rb3Rounds"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="3"
-                android:checked="true"/>
-            <RadioButton
-                android:id="@+id/rb5Rounds"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="5"/>
-            <RadioButton
-                android:id="@+id/rb7Rounds"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="7"/>
-        </RadioGroup>
-
         <Button
             android:id="@+id/btnStartGame"
             android:layout_width="match_parent"

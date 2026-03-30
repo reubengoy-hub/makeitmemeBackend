@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
+import android.widget.Spinner
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import org.json.JSONException
@@ -15,8 +16,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etRoomCode: EditText
     private lateinit var btnJoinRoom: Button
     private lateinit var btnCreateRoom: Button
-    private lateinit var etServerIp: EditText
-    private lateinit var btnConnect: Button
+    private lateinit var spinnerRounds: Spinner
+
+    companion object {
+        private const val SERVER_URL = "https://makeitmemebackend.onrender.com"
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Parar el servicio en segundo plano al volver al menú principal
+        stopService(Intent(this, GameForegroundService::class.java))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,21 +36,13 @@ class MainActivity : AppCompatActivity() {
         etRoomCode = findViewById(R.id.etRoomCode)
         btnJoinRoom = findViewById(R.id.btnJoinRoom)
         btnCreateRoom = findViewById(R.id.btnCreateRoom)
-        etServerIp = findViewById(R.id.etServerIp)
-        btnConnect = findViewById(R.id.btnConnect)
+        spinnerRounds = findViewById(R.id.spinnerRounds)
 
-        btnConnect.setOnClickListener {
-            val ip = etServerIp.text.toString().trim()
-            if (ip.isEmpty()) {
-                Toast.makeText(this, "Ingresa la IP del servidor", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            connectToServer(ip)
-        }
+        connectToServer()
 
         btnCreateRoom.setOnClickListener {
-            if (!SocketHandler.isInitialized()) {
-                Toast.makeText(this, "Conéctate al servidor primero", Toast.LENGTH_SHORT).show()
+            if (!SocketHandler.isConnected()) {
+                Toast.makeText(this, "Sin conexión al servidor, espera un momento", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             val name = etPlayerName.text.toString().trim()
@@ -50,19 +52,20 @@ class MainActivity : AppCompatActivity() {
             }
             val data = JSONObject()
             data.put("name", name)
-            data.put("num_rounds", 3)
+            val numRounds = spinnerRounds.selectedItem.toString().toInt()
+            data.put("num_rounds", numRounds)
             SocketHandler.getSocket().emit("create_room", data)
         }
 
         btnJoinRoom.setOnClickListener {
-            if (!SocketHandler.isInitialized()) {
-                Toast.makeText(this, "Conéctate al servidor primero", Toast.LENGTH_SHORT).show()
+            if (!SocketHandler.isConnected()) {
+                Toast.makeText(this, "Sin conexión al servidor, espera un momento", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             val name = etPlayerName.text.toString().trim()
             val room = etRoomCode.text.toString().trim().uppercase()
             if (name.isEmpty() || room.isEmpty()) {
-                Toast.makeText(this, "Ingresa nombre y código", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Ingresa nombre y código de sala", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             val data = JSONObject()
@@ -72,41 +75,25 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun connectToServer(ip: String) {
+    private fun connectToServer() {
         if (SocketHandler.isInitialized()) {
-            val oldSocket = SocketHandler.getSocket()
+            SocketHandler.getSocket().off()
             SocketHandler.closeConnection()
-            oldSocket.off()
         }
 
-        SocketHandler.setSocket(ip)
+        SocketHandler.setSocket(SERVER_URL)
         val mSocket = SocketHandler.getSocket()
-
-        // Fix: register listeners BEFORE connecting to avoid race condition on EVENT_CONNECT
-        mSocket.on(io.socket.client.Socket.EVENT_CONNECT) {
-            runOnUiThread {
-                Toast.makeText(this, "Conectado al servidor Socket.IO", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        mSocket.on(io.socket.client.Socket.EVENT_CONNECT_ERROR) { args ->
-            val error = if (args.isNotEmpty()) args[0].toString() else "Error desconocido"
-            runOnUiThread {
-                Toast.makeText(this, "Error de conexión: $error", Toast.LENGTH_LONG).show()
-            }
-        }
 
         mSocket.on("room_created") { args ->
             val data = args[0] as JSONObject
             runOnUiThread {
                 try {
-                    val roomId = data.getString("room_id")
-                    val playerId = data.getString("player_id")
                     val intent = Intent(this, LobbyActivity::class.java)
-                    intent.putExtra("ROOM_ID", roomId)
+                    intent.putExtra("ROOM_ID", data.getString("room_id"))
                     intent.putExtra("PLAYER_NAME", etPlayerName.text.toString())
-                    intent.putExtra("PLAYER_ID", playerId)
+                    intent.putExtra("PLAYER_ID", data.getString("player_id"))
                     intent.putExtra("IS_HOST", true)
+                    intent.putExtra("INITIAL_PLAYERS", data.getJSONArray("players").toString())
                     startActivity(intent)
                 } catch (e: JSONException) {
                     e.printStackTrace()
@@ -118,13 +105,12 @@ class MainActivity : AppCompatActivity() {
             val data = args[0] as JSONObject
             runOnUiThread {
                 try {
-                    val roomId = data.getString("room_id")
-                    val playerId = data.getString("player_id")
                     val intent = Intent(this, LobbyActivity::class.java)
-                    intent.putExtra("ROOM_ID", roomId)
+                    intent.putExtra("ROOM_ID", data.getString("room_id"))
                     intent.putExtra("PLAYER_NAME", etPlayerName.text.toString())
-                    intent.putExtra("PLAYER_ID", playerId)
+                    intent.putExtra("PLAYER_ID", data.getString("player_id"))
                     intent.putExtra("IS_HOST", false)
+                    intent.putExtra("INITIAL_PLAYERS", data.getJSONArray("players").toString())
                     startActivity(intent)
                 } catch (e: JSONException) {
                     e.printStackTrace()
@@ -146,8 +132,6 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         if (SocketHandler.isInitialized()) {
             val mSocket = SocketHandler.getSocket()
-            mSocket.off(io.socket.client.Socket.EVENT_CONNECT)
-            mSocket.off(io.socket.client.Socket.EVENT_CONNECT_ERROR)
             mSocket.off("room_created")
             mSocket.off("joined_room")
             mSocket.off("error")

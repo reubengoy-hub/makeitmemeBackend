@@ -1,3 +1,8 @@
 <resources>
-    <string name="app_name">Make It Meme</string>
+    <string name="app_name">MakeItRaspa</string>
+    <string-array name="rounds_options">
+        <item>3</item>
+        <item>5</item>
+        <item>7</item>
+    </string-array>
 </resources>

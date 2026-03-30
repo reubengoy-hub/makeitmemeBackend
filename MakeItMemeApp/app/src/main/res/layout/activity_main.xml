@@ -4,36 +4,32 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
-    android:padding="32dp">
+    android:padding="32dp"
+    android:background="#000000">
+
+    <ImageView
+        android:layout_width="180dp"
+        android:layout_height="120dp"
+        android:src="@drawable/fish_white"
+        android:scaleType="fitCenter"
+        android:layout_marginBottom="8dp"/>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Make It Meme"
+        android:text="MakeItRaspa"
         android:textSize="36sp"
         android:textStyle="bold"
+        android:textColor="#FFFFFF"
         android:layout_marginBottom="32dp"/>
-
-    <EditText
-        android:id="@+id/etServerIp"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="IP del Servidor (ej. 192.168.1.100)"
-        android:layout_marginBottom="16dp"
-        android:inputType="textUri" />
-
-    <Button
-        android:id="@+id/btnConnect"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Conectar al Servidor"
-        android:layout_marginBottom="24dp" />
 
     <EditText
         android:id="@+id/etPlayerName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Tu Nombre"
+        android:textColorHint="#AAAAAA"
+        android:textColor="#FFFFFF"
         android:layout_marginBottom="16dp"
         android:inputType="textPersonName" />
 
@@ -42,8 +38,31 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Código de Sala (si te unes)"
+        android:textColorHint="#AAAAAA"
+        android:textColor="#FFFFFF"
         android:layout_marginBottom="24dp"
         android:inputType="textCapCharacters" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Rondas: "
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"/>
+
+        <Spinner
+            android:id="@+id/spinnerRounds"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:entries="@array/rounds_options"/>
+    </LinearLayout>
 
     <Button
         android:id="@+id/btnJoinRoom"
